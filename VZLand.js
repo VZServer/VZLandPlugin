@@ -1,5 +1,10 @@
+// LiteLoader-AIDS automatic generated
+/// <reference path="c:\vzbds2\LLSE-Aids/dts/helperlib/src/index.d.ts"/> 
 
-const HomeData = new JsonConfigFile("./plugins/VZLand/homes.json", "{}");
+
+var LandData =  data.parseJson(file.readFrom('./plugins/VZLand/data.json'))
+
+
 
 mc.regPlayerCmd("reloadscore", "重設scoreboard", (pl, args)=>{
     mc.runcmd("scoreboard players set LCC LandCreateCount 0")
@@ -8,7 +13,7 @@ mc.regPlayerCmd("reloadscore", "重設scoreboard", (pl, args)=>{
     mc.runcmd("scoreboard players set legStep legStep 1")
     mc.runcmd("scoreboard players set turns turns 0")
     mc.runcmd("scoreboard players set direction direction 0")
-    mc.runcmd("scoreboard players set directionX directionX 0")
+    mc.runcmd("scoreboard players set directionX directionX 64")
     mc.runcmd("scoreboard players set directionZ directionZ 0")
     mc.runcmd(`tag ${pl.realName} remove landed`)
 })
@@ -42,10 +47,10 @@ mc.regPlayerCmd("createland", "§e創建領地", (pl, args) => {
             directionZ.reduceScore("directionZ", 128)
         }
 
-        // 更新步數
+        // 更新步數   一天要走10000步(沒
         legStep.addScore("legStep", 1)
 
-        // 如果走滿邊長 -> 轉向
+        // 如果走滿邊長 就要轉向!
         if (legStep.getScore("legStep") >= legLen.getScore("legLen")) {
             legStep.setScore("legStep", 0)
             dir = (dir + 1) % 4
@@ -61,13 +66,17 @@ mc.regPlayerCmd("createland", "§e創建領地", (pl, args) => {
         let centerX =  directionX.getScore("directionX")
         let centerY = 256
         let centerZ =  directionZ.getScore("directionZ")
-        mc.runcmd(`tp ${pl.realName} ${centerX} ${centerY} ${centerZ}`)
+
+        mc.runcmd(`tp ${pl.realName} ${centerX} 257 ${centerZ}`)
         mc.runcmd(`gamemode spectator ${pl.realName}`)
-        mc.runcmd(`structure load Land ${centerX +48} 216 ${centerZ -18}`)
+        mc.runcmd(`structure load Land ${centerX +48-64} 216 ${centerZ -18}`)
         setTimeout(()=>{mc.runcmd(`gamemode adventure ${pl.realName}`)}, 2000)
-        HomeData.set(pl.xuid, "x", centerX);
-        HomeData.set(pl.xuid, "y", centerY);
-        HomeData.set(pl.xuid, "z", centerZ);
+        LandData[pl.xuid] = {
+            x: centerX,
+            y: centerY,
+            z: centerZ
+        };
+        file.writeTo("plugins/VZLand/data.json", JSON.stringify(LandData, null, "\t"))
 
 
         pl.addTag("landed")
@@ -81,17 +90,16 @@ mc.regPlayerCmd("createland", "§e創建領地", (pl, args) => {
 // 你想想這是甚麼
 mc.regPlayerCmd("home", "§e回到Land", (pl, args) => {
     if (pl.hasTag("landed")) {
-        let homeX = HomeData.getInt(pl.xuid, "x", 0);
-        let homeY = HomeData.getInt(pl.xuid, "y", 0);
-        let homeZ = HomeData.getInt(pl.xuid, "z", 0);
+        let LandData = JSON.parse(file.readFrom("plugins/VZLand/data.json"));
+        let home = LandData[pl.xuid];
 
-        if (homeX !== 0 || homeZ !== 0) {
-            pl.teleport(homeX, homeY, homeZ);
+        if (home) {
+            mc.runcmdEx(`tp ${pl.realName} ${home.x} ${home.y} ${home.z}`);
             pl.tell(" §f已將您傳送回家園!");
         } else {
             pl.tell(" §c找不到您的家園座標，請重新創建!");
         }
     } else {
-        pl.tell(" §f您還沒有家園!");
+        pl.tell(" §f您還沒有家園!")
     }
-});
+})
